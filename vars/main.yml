@@ -1,0 +1,10 @@
+---
+nomad_installation_temp_dir: "{{ nomad_installation_user_temp_dir | default('') }}"
+
+nomad_installation_architecture_map:
+  x86_64: amd64
+  aarch64: arm64
+nomad_installation_architecture: "{{ nomad_installation_architecture_map[ansible_architecture] }}"
+nomad_installation_pkg: nomad_{{ nomad_installation_version }}_linux_{{ nomad_installation_architecture }}.zip
+nomad_installation_zip_url: https://releases.hashicorp.com/nomad/{{ nomad_installation_version }}/nomad_{{ nomad_installation_version }}_linux_{{ nomad_installation_architecture }}.zip
+nomad_installation_checksum_file_url: https://releases.hashicorp.com/nomad/{{ nomad_installation_version }}/nomad_{{ nomad_installation_version }}_SHA256SUMS

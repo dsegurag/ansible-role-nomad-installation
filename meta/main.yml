@@ -1,0 +1,12 @@
+---
+dependencies: []
+
+galaxy_info:
+  role_name: nomad_installation
+  author: dsegurag
+  description: An Ansible role for installing HashiCorp Nomad.
+  license: MIT
+  min_ansible_version: 2.17.4
+  platforms:
+    - name: Debian
+    - name: Ubuntu

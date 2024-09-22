@@ -1,0 +1,5 @@
+---
+nomad_installation_version: 1.8.4
+nomad_installation_bin_dir: /usr/local/bin
+nomad_installation_user: "{{ ansible_user }}"
+nomad_installation_group: "{{ ansible_user }}"

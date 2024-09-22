@@ -1,0 +1,92 @@
+---
+
+- name: create folder for artifacts # noqa: run-once[task]
+  when: nomad_installation_temp_dir == ''
+  delegate_to: localhost
+  become: false
+  run_once: true
+  register: nomad_installation_temp_dir_result
+  ansible.builtin.tempfile:
+    state: directory
+
+- name: use the custom folder if nomad_installation_user_temp_dir is defined and not empty # noqa: run-once[task]
+  delegate_to: localhost
+  become: false
+  run_once: true
+  ansible.builtin.set_fact:
+    nomad_installation_artifacts: "{{ nomad_installation_temp_dir }}"
+  when: nomad_installation_temp_dir != ''
+
+- name: set the temporary folder path if nomad_installation_user_temp_dir was empty # noqa: run-once[task]
+  delegate_to: localhost
+  become: false
+  run_once: true
+  ansible.builtin.set_fact:
+    nomad_installation_artifacts: "{{ nomad_installation_temp_dir_result.path }}"
+  when: nomad_installation_temp_dir == ''
+
+- name: check nomad package checksum file # noqa: run-once[task]
+  delegate_to: localhost
+  become: false
+  run_once: true
+  register: nomad_installation_checksum
+  ansible.builtin.stat:
+    path: "{{ nomad_installation_artifacts }}/nomad_{{ nomad_installation_version }}_SHA256SUMS"
+
+- name: get nomad package checksum file # noqa: run-once[task]
+  delegate_to: localhost
+  become: false
+  run_once: true
+  when: not nomad_installation_checksum.stat.exists
+  ansible.builtin.get_url:
+    url: "{{ nomad_installation_checksum_file_url }}"
+    dest: "{{ nomad_installation_artifacts }}/nomad_{{ nomad_installation_version }}_SHA256SUMS"
+    mode: "644"
+
+- name: get nomad package checksum # noqa: run-once[task]
+  delegate_to: localhost
+  become: false
+  run_once: true
+  register: nomad_installation_sha256
+  changed_when: nomad_installation_sha256.rc != 0
+  ansible.builtin.shell: |
+    set -o pipefail
+    grep "{{ nomad_installation_pkg }}" "{{ nomad_installation_artifacts }}/nomad_{{ nomad_installation_version }}_SHA256SUMS" | awk '{print $1}'
+  args:
+    executable: /bin/bash
+
+- name: check nomad package file # noqa: run-once[task]
+  delegate_to: localhost
+  become: false
+  run_once: true
+  register: nomad_installation_package
+  ansible.builtin.stat:
+    path: "{{ nomad_installation_artifacts }}/{{ nomad_installation_pkg }}"
+
+- name: download nomad # noqa: run-once[task]
+  delegate_to: localhost
+  become: false
+  run_once: true
+  when: not nomad_installation_package.stat.exists
+  ansible.builtin.get_url:
+    url: "{{ nomad_installation_zip_url }}"
+    dest: "{{ nomad_installation_artifacts }}/{{ nomad_installation_pkg }}"
+    checksum: sha256:{{ nomad_installation_sha256.stdout }}
+    mode: "644"
+
+- name: unarchive nomad # noqa: run-once[task]
+  delegate_to: localhost
+  become: false
+  run_once: true
+  ansible.builtin.unarchive:
+    src: "{{ nomad_installation_artifacts }}/{{ nomad_installation_pkg }}"
+    dest: "{{ nomad_installation_artifacts }}/"
+    creates: "{{ nomad_installation_artifacts }}/nomad"
+
+- name: copy nomad binary
+  ansible.builtin.copy:
+    src: "{{ nomad_installation_artifacts }}/nomad"
+    dest: "{{ nomad_installation_bin_dir }}"
+    owner: "{{ nomad_installation_user }}"
+    group: "{{ nomad_installation_group }}"
+    mode: "755"
